@@ -1,4 +1,5 @@
 import type { FetchMethod, SourceAdapter } from "./types";
+import { rssAdapter } from "./adapters/rss";
 
 const adapters = new Map<FetchMethod, SourceAdapter>();
 
@@ -28,5 +29,6 @@ export const manualAdapter: SourceAdapter = {
   },
 };
 
-// Only manual is registered in Phase 2
+// Register manual and rss adapters
 registerAdapter(manualAdapter);
+registerAdapter(rssAdapter);

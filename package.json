@@ -14,7 +14,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed-sources.ts",
     "db:inspect": "tsx src/db/inspect.ts",
-    "sources:inspect": "tsx src/sources/inspect-sources.ts"
+    "sources:inspect": "tsx src/sources/inspect-sources.ts",
+    "sync": "tsx src/jobs/sync.ts"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.14",
@@ -29,6 +30,7 @@
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "rss-parser": "^3.13.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7"
   },

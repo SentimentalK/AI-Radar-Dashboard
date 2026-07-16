@@ -64,6 +64,28 @@ const defaultSources = [
     config: {
       note: "Exact feed or scraper strategy will be implemented in a later phase."
     }
+  },
+  {
+    id: "hn-ai-search",
+    name: "Hacker News AI Search RSS",
+    type: "community",
+    fetchMethod: "rss",
+    url: "https://hnrss.org/newest?q=AI",
+    enabled: 1,
+    config: {
+      note: "Simple RSS source for Phase 3 ingestion validation."
+    }
+  },
+  {
+    id: "github-blog",
+    name: "GitHub Blog",
+    type: "blog",
+    fetchMethod: "rss",
+    url: "https://github.blog/feed/",
+    enabled: 1,
+    config: {
+      note: "Simple RSS source for Phase 3 ingestion validation."
+    }
   }
 ];
 

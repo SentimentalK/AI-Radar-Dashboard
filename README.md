@@ -106,6 +106,26 @@ npm run sources:inspect
 
 ---
 
+## Sync Job
+
+Phase 3 introduces the first ingestion job. A sync job is responsible for fetching, validating, and writing new items to the database.
+
+Run the sync job locally:
+```bash
+npm run sync
+```
+
+The job:
+- Loads enabled sources from SQLite.
+- Resolves registered adapters (only manual and generic RSS adapters are implemented in Phase 3).
+- Fetches raw source items.
+- Deduplicates items using stable hashes to prevent duplicate writes on subsequent executions.
+- Inserts new items into SQLite (enrichment fields are left null).
+- Records source-level execution history in `sync_runs`.
+- Unsupported fetch methods and feed failures are logged as failures but do not crash the script, allowing remaining feeds to execute.
+
+---
+
 ## Running the Application
 
 ### 1. Local Development (npm)
