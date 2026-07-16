@@ -1,0 +1,9 @@
+{
+  "id": "paper-abstract-agent-memory",
+  "sourceType": "paper",
+  "sourceName": "arXiv",
+  "title": "Hierarchical Episodic Memory for Autonomous Coding Agents",
+  "url": "https://arxiv.org/abs/2602.12345",
+  "publishedAt": "2026-02-18T00:00:00Z",
+  "extractedContent": "# Hierarchical Episodic Memory for Autonomous Coding Agents\n\nAutonomous coding agents struggle to maintain context over large, multi-session programming tasks. This paper proposes a Hierarchical Episodic Memory (HEM) architecture to summarize, index, and retrieve past agent actions and system traces.\n\n## Mechanism\nHEM parses raw action logs into low-level trace blocks, aggregates blocks into episodic memories using sliding window summarizers, and creates a semantic index. When an agent executes a command, the memory retriever returns both short-term trace details and long-term episodic summaries.\n\n## Findings\nHEM reduces context window token usage by 40% while improving task success rates by 25% on complex software engineering benchmarks.\n\n## Limitations\n- The summarization stage introduces extra token cost\n- Higher index building latency during command loops\n- Relies on accurate vector lookup indices"
+}

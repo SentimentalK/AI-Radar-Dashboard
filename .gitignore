@@ -28,3 +28,6 @@ data/*.sqlite
 data/*.sqlite-*
 
 .env
+
+# Evaluation reports
+reports/*.json

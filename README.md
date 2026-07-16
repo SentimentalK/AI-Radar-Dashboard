@@ -152,6 +152,31 @@ The extraction job:
 
 ---
 
+## LLM Evaluation
+
+Phase 7 introduces the LLM provider abstraction and evaluation script. It supports running mock offline tests and live Zhipu GLM completions, validating results against a strict Zod-based radar card schema, performing quality assurance checks, and saving JSON results under the `reports/` folder.
+
+**The evaluation job does not write any enrichment results or tags back to SQLite.** It is strictly evaluation-only.
+
+### Run Offline Mock Evaluation
+```bash
+LLM_PROVIDER=mock npm run eval:llm
+```
+
+### Run Live Zhipu GLM Evaluation
+Configure `ZHIPU_API_KEY` in `.env` and run:
+```bash
+LLM_PROVIDER=zhipu ZHIPU_API_KEY=your_key_here ZHIPU_MODEL=glm-4.7-flash npm run eval:llm
+```
+
+Options:
+- `LLM_EVAL_USE_LIVE_DB=true`: reads a small batch of actual database items (`extracted_content IS NOT NULL`) as inputs instead of using static fixtures.
+- `LLM_EVAL_OUTPUT_DIR=<path>`: overrides the output folder for JSON reports.
+
+*Note: Do not commit ZHIPU_API_KEY tokens or generated reports. All `reports/*.json` files are automatically excluded in `.gitignore`.*
+
+---
+
 ## Read-only API
 
 Phase 4 exposes read-only API routes over the materialized SQLite data.

@@ -1,0 +1,9 @@
+{
+  "id": "github-repo-reader",
+  "sourceType": "open_source_tool",
+  "sourceName": "GitHub",
+  "title": "Jina AI Reader",
+  "url": "https://github.com/jina-ai/reader",
+  "publishedAt": null,
+  "extractedContent": "# Jina AI Reader\n\nJina AI Reader is a clean web API that converts any URL into LLM-friendly Markdown format. It solves the problem of extracting clean readable text from noisy web pages without running heavy headless browsers.\n\n## How it works\nUnder the hood, Jina Reader crawls the target web URL, extracts semantic content, removes HTML layout overhead, navigates complex layouts, and formats the output as clean markdown text. It is fast, scalable, and hosted on a global endpoint.\n\n## Features\n- Direct URL prefix mapping (e.g. `https://r.jina.ai/https://example.com`)\n- Automatic handling of JavaScript SPA pages\n- Returns clean markdown tags\n\n## Limitations\n- Relies on remote endpoint availability\n- High latency on extremely complex target pages\n- Free tier has rate limits"
+}

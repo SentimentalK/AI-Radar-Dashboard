@@ -1,0 +1,9 @@
+{
+  "id": "official-blog-code-migration",
+  "sourceType": "blog",
+  "sourceName": "Vercel Blog",
+  "title": "Migrating Next.js Applications to Server Components",
+  "url": "https://vercel.com/blog/migrating-to-server-components",
+  "publishedAt": "2026-05-12T10:00:00Z",
+  "extractedContent": "# Next.js Server Components Migration Guide\n\nNext.js has introduced standard React Server Components as the default pattern for page routing. This guide explains how to migrate existing pages to RSCs to reduce browser bundle sizes and increase load performance.\n\n## Architecture details\nServer Components execute on the server side first, returning serialized metadata to the client. This means that heavy node packages like markdown parsers or code formatters are never loaded in the browser bundle.\n\n## Migration Path\n- Identify stateful client nodes (add `\"use client\"` directives)\n- Move database lookups directly into Server Component page files\n- Stream page components using React Suspense\n\n## Advantages\n- Significant bundle size reductions\n- Better search engine visibility\n\n## Limitations\n- Cannot use hooks like `useState` or `useEffect` inside server components\n- Requires modular refactoring of shared code"
+}
