@@ -85,6 +85,27 @@ All commands below run using `tsx` to run TypeScript files directly:
 
 ---
 
+## Source Adapter Layer
+
+Phase 2 defines the source adapter contract. A source adapter is responsible for fetching and normalizing raw source items.
+
+Adapters must not:
+- write to SQLite directly
+- call LLMs
+- generate summaries
+- update dashboard cards
+
+### Inspection Command
+
+You can verify that configured sources are mapped, loaded, and validated correctly by running:
+```bash
+npm run sources:inspect
+```
+
+*Note: This command loads configuration from SQLite and validates it. It is entirely offline and does not fetch external URLs.*
+
+---
+
 ## Running the Application
 
 ### 1. Local Development (npm)
