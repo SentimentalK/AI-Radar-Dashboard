@@ -161,6 +161,20 @@ curl http://localhost:8080/api/items/timeline
 
 ---
 
+## Frontend Dashboard
+
+Phase 5 connects the React dashboard to the read-only API.
+
+Pages:
+- **Daily Brief**: placeholder explaining the pipeline status.
+- **Timeline**: real materialized news items grouped by publish/fetch date.
+- **Sources**: monitor configured sources and endpoints.
+- **Sync Runs**: view pulling execution history, status badges, and fetch errors.
+
+The frontend uses relative `/api` paths, allowing requests to work through the Vite dev server proxy locally and through the Nginx container proxy in Docker.
+
+---
+
 ## Running the Application
 
 ### 1. Local Development (npm)

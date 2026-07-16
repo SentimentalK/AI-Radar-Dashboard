@@ -1,66 +1,71 @@
-import { useEffect, useState } from 'react'
-import Sidebar from './Sidebar'
-import PageHeader from './PageHeader'
-import DailyBriefPage from '@/pages/DailyBriefPage'
-import TimelinePage from '@/pages/TimelinePage'
-import SourcesPage from '@/pages/SourcesPage'
+import { useEffect, useState } from 'react';
+import Sidebar from './Sidebar';
+import PageHeader from './PageHeader';
+import DailyBriefPage from '@/pages/DailyBriefPage';
+import TimelinePage from '@/pages/TimelinePage';
+import SourcesPage from '@/pages/SourcesPage';
+import RunsPage from '@/pages/RunsPage';
 
 interface AppShellProps {
-  activeTab: 'brief' | 'timeline' | 'sources'
-  setActiveTab: (tab: 'brief' | 'timeline' | 'sources') => void
+  activeTab: 'brief' | 'timeline' | 'sources' | 'runs';
+  setActiveTab: (tab: 'brief' | 'timeline' | 'sources' | 'runs') => void;
 }
 
 export default function AppShell({ activeTab, setActiveTab }: AppShellProps) {
-  const [apiStatus, setApiStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
+  const [apiStatus, setApiStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   useEffect(() => {
-    let active = true
+    let active = true;
     const checkHealth = async () => {
       try {
-        const res = await fetch('/api/health')
+        const res = await fetch('/api/health');
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (data && data.ok && active) {
-            setApiStatus('connected')
-            return
+            setApiStatus('connected');
+            return;
           }
         }
-        if (active) setApiStatus('disconnected')
+        if (active) setApiStatus('disconnected');
       } catch (err) {
-        if (active) setApiStatus('disconnected')
+        if (active) setApiStatus('disconnected');
       }
-    }
+    };
 
-    checkHealth()
-    const interval = setInterval(checkHealth, 10000)
+    checkHealth();
+    const interval = setInterval(checkHealth, 10000);
 
     return () => {
-      active = false
-      clearInterval(interval)
-    }
-  }, [])
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const getPageTitle = () => {
     switch (activeTab) {
       case 'brief':
-        return 'Daily Brief'
+        return 'Daily Brief';
       case 'timeline':
-        return 'Activity Timeline'
+        return 'Activity Timeline';
       case 'sources':
-        return 'Ingestion Sources'
+        return 'Ingestion Sources';
+      case 'runs':
+        return 'Sync Runs';
     }
-  }
+  };
 
   const renderActivePage = () => {
     switch (activeTab) {
       case 'brief':
-        return <DailyBriefPage />
+        return <DailyBriefPage />;
       case 'timeline':
-        return <TimelinePage />
+        return <TimelinePage />;
       case 'sources':
-        return <SourcesPage />
+        return <SourcesPage />;
+      case 'runs':
+        return <RunsPage />;
     }
-  }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
@@ -72,5 +77,5 @@ export default function AppShell({ activeTab, setActiveTab }: AppShellProps) {
         </main>
       </div>
     </div>
-  )
+  );
 }
