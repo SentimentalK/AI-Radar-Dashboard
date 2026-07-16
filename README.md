@@ -126,6 +126,41 @@ The job:
 
 ---
 
+## Read-only API
+
+Phase 4 exposes read-only API routes over the materialized SQLite data.
+
+Routes:
+- `GET /api/health`
+- `GET /api/items` (query filters: `sourceType`, `sourceId`, `category`, `recommendedAction`, `minRelevance`, `q`, `limit`, `offset`)
+- `GET /api/items/timeline` (query filters: `days`, `sourceType`, `category`, `recommendedAction`, `minRelevance`, `limitPerDay`)
+- `GET /api/items/:id` (detail lookup, returns 404 error if missing)
+- `GET /api/sources` (query filter: `enabled=true|false`)
+- `GET /api/runs` (query filters: `status`, `sourceId`, `limit`, `offset`)
+- `GET /api/tags`
+
+### API Verification Examples
+
+Direct API port (4000):
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/sources
+curl "http://localhost:4000/api/items?limit=5"
+curl "http://localhost:4000/api/items/timeline?days=7"
+curl http://localhost:4000/api/runs
+curl http://localhost:4000/api/tags
+```
+
+Nginx container proxy (8080):
+```bash
+curl http://localhost:8080/api/items
+curl http://localhost:8080/api/items/timeline
+```
+
+*Note: The API only reads from SQLite. It is strictly read-only and does not crawl external sources or execute LLMs during requests.*
+
+---
+
 ## Running the Application
 
 ### 1. Local Development (npm)
