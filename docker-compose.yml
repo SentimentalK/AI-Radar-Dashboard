@@ -1,0 +1,21 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      PORT: 4000
+      DATABASE_PATH: /data/radar.sqlite
+    volumes:
+      - ./data:/data
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
