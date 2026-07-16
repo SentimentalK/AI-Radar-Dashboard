@@ -15,7 +15,8 @@
     "db:seed": "tsx src/db/seed-sources.ts",
     "db:inspect": "tsx src/db/inspect.ts",
     "sources:inspect": "tsx src/sources/inspect-sources.ts",
-    "sync": "tsx src/jobs/sync.ts"
+    "sync": "tsx src/jobs/sync.ts",
+    "extract": "tsx src/jobs/extract.ts"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.14",

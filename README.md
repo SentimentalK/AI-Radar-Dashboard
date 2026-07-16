@@ -126,6 +126,32 @@ The job:
 
 ---
 
+## Content Extraction
+
+Phase 6 adds readable content extraction to compile full text for future LLM enrichment.
+
+Run the extraction job locally:
+```bash
+npm run extract
+```
+
+Options:
+- `--limit <number>`: limit batch processing (default is `EXTRACTION_BATCH_SIZE` or 25).
+- `--retry-failures`: re-attempts previously failed candidates instead of ignoring them.
+
+The extraction job:
+- Finds items without extracted content (where `extracted_at IS NULL` by default).
+- Implements a layered fallback strategy:
+  1. **Feed Content**: Uses `rawContent` / `rawExcerpt` from RSS if >= 500 characters.
+  2. **Jina Reader API**: If feed content is missing/short, crawls target URL to retrieve clean Markdown.
+  3. **Raw Excerpt**: Falls back to the existing excerpt as a final safety measure.
+- Runs crawlers and updates candidates one-by-one, releasing database connections during web request periods.
+- Cleans and truncates extracted content (capped at `EXTRACTION_MAX_CHARS` or 40000).
+- Updates `extracted_content`, `extraction_method`, `extracted_at`, and `extraction_error` columns in SQLite.
+- Run history status is visible inside the card detail slide-over drawers.
+
+---
+
 ## Read-only API
 
 Phase 4 exposes read-only API routes over the materialized SQLite data.

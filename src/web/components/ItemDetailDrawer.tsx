@@ -122,6 +122,39 @@ export default function ItemDetailDrawer({ item, onClose }: ItemDetailDrawerProp
               </div>
             </div>
 
+            {/* Extracted Content Preview */}
+            {(item.extractedContent || item.extractionError || item.extractionMethod) && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Extracted Content</h3>
+                    {item.extractionMethod && (
+                      <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-primary/5 font-normal capitalize">
+                        Method: {item.extractionMethod.replace("_", " ")}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {item.extractionError && (
+                    <div className="p-3 rounded-lg border border-red-500/20 bg-red-500/5 text-xs text-red-500/90 leading-normal">
+                      <span className="font-semibold">Extraction Failure:</span> {item.extractionError}
+                    </div>
+                  )}
+
+                  {item.extractedContent ? (
+                    <div className="bg-background/80 p-4 rounded-md border border-border text-xs text-foreground leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">
+                      {item.extractedContent.slice(0, 2000) + (item.extractedContent.length > 2000 ? "\n\n...[truncated preview]..." : "")}
+                    </div>
+                  ) : (
+                    !item.extractionError && (
+                      <p className="text-xs text-muted-foreground italic">No readable content extracted yet.</p>
+                    )
+                  )}
+                </div>
+              </>
+            )}
+
             {/* Raw Excerpt & Content Preview */}
             {(item.rawExcerpt || item.rawContent) && (
               <>
