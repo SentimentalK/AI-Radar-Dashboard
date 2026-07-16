@@ -4,8 +4,6 @@ AI Radar is a pull-based, materialized AI engineering radar dashboard.
 
 The final system will collect items from fixed sources, normalize them, enrich them with an LLM, store results in SQLite, and display them in a React dashboard.
 
-Phase 0 only creates the project skeleton and container foundation.
-
 ---
 
 ## Folder Structure
@@ -21,7 +19,7 @@ ai-radar/
   README.md            - This documentation
   .dockerignore        - Patterns to ignore in Docker builds
 
-  Dockerfile.api       - Docker build configuration for Express backend
+  Dockerfile.api       - Docker build configuration for Express backend (native compiler setup)
   Dockerfile.web       - Docker build configuration for React frontend (multi-stage Nginx)
   nginx.conf           - Nginx server configuration (proxying /api to api container)
   docker-compose.yml   - Multi-container configuration
@@ -37,37 +35,53 @@ ai-radar/
       index.ts
       routes/
         health.ts
-    jobs/              - [Future] Ingestion, enrichment, and daily brief jobs (.gitkeep)
-    db/                - [Future] SQLite client and migration files (.gitkeep)
+    jobs/              - Ingestion, enrichment, and daily brief jobs (.gitkeep)
+    db/                - SQLite client, schema, migration, and seeding code
+      client.ts        - better-sqlite3 database initializer
+      paths.ts         - database path resolver
+      schema.sql       - DDL schema layout
+      migrate.ts       - schema migration script
+      seed-sources.ts  - default source configuration seeder
+      inspect.ts       - CLI diagnostics check
     sources/           - [Future] Feed/API adapter implementations (.gitkeep)
     llm/               - [Future] LLM provider contracts and orchestration (.gitkeep)
     shared/            - TypeScript types shared between web and server
       types.ts
 
-  data/                - [Future] Persistent storage directory for SQLite (.gitkeep)
+  data/                - Persistent storage directory for SQLite (radar.sqlite goes here)
   deploy/
-    k8s/               - [Future] K3s cluster deployment manifests (.gitkeep)
+    k8s/               - K3s cluster deployment manifests
       README.md
 ```
 
 ---
 
-## Phase 0 Scope
+## Database Configuration
 
-### Implemented
-- **React + Vite + TypeScript**: Set up with standard React and React-DOM versions.
-- **Tailwind CSS v3 & shadcn/ui**: Local UI library configuration (button, card, badge, separator, scroll-area) for clean dark dashboard rendering.
-- **Express Backend**: Minimal Node API listening on `0.0.0.0` at port `4000` (or `process.env.PORT`).
-- **Health Check Route**: Exposes `GET /api/health` returning `{"ok": true, "service": "ai-radar-api"}`.
-- **Docker Compose Setup**: Spawns an `api` service (Node dev mode using `tsx`) and a `web` service (production-grade Nginx builder and proxy).
+AI Radar uses SQLite as the materialized storage layer.
 
-### Intentionally Excluded
-- SQLite database creation, schema, migrations, or seeding.
-- Source crawlers (arXiv, GitHub Trending, standard RSS, RSSHub).
-- Jina Reader markdown extraction.
-- LLM enrichment logic or provider endpoints (Zhipu/GLM, OpenAI).
-- Materialized daily briefs.
-- Production multi-replica scaling configs or CronJobs.
+- **Local Default Path**: `data/radar.sqlite` (resolved relative to the project root directory).
+- **Container/K3s Path**: `/data/radar.sqlite` (mapped via Docker volumes).
+- **Environment Variable**: Configure the path via `DATABASE_PATH=/data/radar.sqlite`.
+
+### Database Scripts
+
+All commands below run using `tsx` to run TypeScript files directly:
+
+1. **Run Migrations**: Creates all tables and indexes. Safe and idempotent.
+   ```bash
+   npm run db:migrate
+   ```
+2. **Seed Default Sources**: populates the 5 initial sources (arXiv, GitHub Trending, OpenAI/Anthropic updates). Safe and idempotent.
+   ```bash
+   npm run db:seed
+   ```
+3. **Inspect Database**: Prints the active database file location and rows counts.
+   ```bash
+   npm run db:inspect
+   ```
+
+*Note: Phase 1 only seeds the metadata configuration of the sources. It does not fetch external URLs or parse RSS feeds.*
 
 ---
 
@@ -78,6 +92,12 @@ ai-radar/
 Install dependencies:
 ```bash
 npm install
+```
+
+Run migrations and seed the database:
+```bash
+npm run db:migrate
+npm run db:seed
 ```
 
 Start both the backend API and frontend Vite server concurrently:
@@ -96,6 +116,13 @@ npm run dev
 Launch the multi-container app:
 ```bash
 docker compose up --build
+```
+
+Exec into the API container to run database setup tasks:
+```bash
+docker compose exec api npm run db:migrate
+docker compose exec api npm run db:seed
+docker compose exec api npm run db:inspect
 ```
 
 In Docker mode, the API can be reached in two ways:
