@@ -195,6 +195,46 @@ Options:
 
 ---
 
+## LLM Enrichment Pipeline
+
+Phase 8 implements the production LLM enrichment pipeline. It selects candidates from the `items` table, processes them sequentially through Groq GPT-OSS-120B to analyze technologies, validates the output structured fields against a strict Zod schema, applies enum repairs if needed, and writes the validated enriched fields back to the `items` table along with updating the `tags` and `item_tags` tables transactionally.
+
+### Local Ingestion & In-Production Enrichment Workflow
+Run the pipeline locally:
+```bash
+npm run db:migrate
+npm run db:seed
+npm run sync
+npm run extract
+LLM_PROVIDER=groq GROQ_API_KEY=your_groq_api_key GROQ_MODEL=openai/gpt-oss-120b npm run enrich
+npm run dev
+```
+
+### Docker Compose Production Enrichment Workflow
+Run the pipeline containerized:
+```bash
+docker compose up -d --build
+docker compose exec api npm run db:migrate
+docker compose exec api npm run db:seed
+docker compose exec api npm run sync
+docker compose exec api npm run extract
+docker compose exec api sh -c "LLM_PROVIDER=groq GROQ_API_KEY=your_groq_api_key GROQ_MODEL=openai/gpt-oss-120b npm run enrich"
+```
+
+### Options:
+- `--limit <number>`: limit batch processing (default is `ENRICH_BATCH_SIZE` or 10).
+- `--retry-failed`: retries items that previously failed enrichment (default is false).
+
+### Configuration parameters (.env):
+- `ENRICH_BATCH_SIZE`: Default number of items to enrich per run (default: 10).
+- `ENRICH_MAX_CHARS`: Max extracted content chars sent to the model (default: 30000).
+- `ENRICH_RETRY_FAILED`: If false, only enrich never-enriched items. If true, retry items with `enrichment_error`.
+- `ENRICH_CONCURRENCY`: Sequential execution limit (default: 1).
+
+*Note: Phase 8 enriches extracted items with Groq GPT-OSS-120B and writes validated structured fields to SQLite. It does not add new sources (Phase 10) or generate Daily Briefs (Phase 9).*
+
+---
+
 ## Read-only API
 
 Phase 4 exposes read-only API routes over the materialized SQLite data.

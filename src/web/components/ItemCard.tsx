@@ -45,7 +45,7 @@ export default function ItemCard({ item, onOpen }: ItemCardProps) {
         </p>
 
         {/* Action / Category / Relevance score badges */}
-        {(item.category || item.recommendedAction || item.engineeringRelevanceScore !== null) && (
+        {(item.category || item.recommendedAction || item.engineeringRelevanceScore !== null || item.confidence) && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
             {item.category && (
               <Badge variant="outline" className="text-[9px] py-0 px-1.5">
@@ -60,9 +60,29 @@ export default function ItemCard({ item, onOpen }: ItemCardProps) {
             {item.engineeringRelevanceScore !== null && (
               <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-orange-500/20 bg-orange-500/5 text-orange-500 font-normal inline-flex items-center gap-1">
                 <Flame className="h-2.5 w-2.5" />
-                {item.engineeringRelevanceScore}/10
+                {item.engineeringRelevanceScore}/5
               </Badge>
             )}
+            {item.confidence && (
+              <Badge variant="outline" className="text-[9px] py-0 px-1.5 border-border bg-background text-muted-foreground font-normal">
+                {item.confidence}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Tags */}
+        {item.tags && item.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 pt-1.5 border-t border-border/40">
+            {item.tags.map((tag) => (
+              <Badge 
+                key={tag} 
+                variant="secondary" 
+                className="text-[9px] py-0 px-1 font-normal text-muted-foreground bg-secondary/40 hover:bg-secondary/60"
+              >
+                #{tag}
+              </Badge>
+            ))}
           </div>
         )}
       </CardContent>

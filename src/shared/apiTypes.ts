@@ -42,6 +42,7 @@ export type ApiItem = {
   updatedAt: string;
 
   sourceName?: string | null;
+  tags: string[];
 };
 
 export type ApiTimelineGroup = {

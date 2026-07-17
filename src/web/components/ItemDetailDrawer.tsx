@@ -84,43 +84,145 @@ export default function ItemDetailDrawer({ item, onClose }: ItemDetailDrawerProp
 
             <Separator />
 
-            {/* Future Enrichment Section (Not Enriched Yet) */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">AI Enrichment Details</h3>
-                <Badge variant="outline" className="bg-yellow-500/5 text-yellow-500/80 border-yellow-500/20 text-[9px] py-0 px-1 font-normal">
-                  Pre-Enrichment Phase
-                </Badge>
-              </div>
+            {/* AI Enrichment Section */}
+            {item.enrichedAt ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                  <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">AI Enrichment Details</h3>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span>Model: {item.enrichmentModel}</span>
+                    <span>•</span>
+                    <span>Enriched: {formatDateTime(item.enrichedAt)}</span>
+                  </div>
+                </div>
 
-              <div className="p-4 rounded-lg border border-yellow-500/10 bg-yellow-500/5 flex gap-3 text-xs text-yellow-500/95 leading-normal">
-                <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <div>
-                  This item was successfully ingested into SQLite but has not been processed by the LLM enrichment pipeline yet. 
-                  Enriched properties (technical architecture, limitations, engineering relevance) will appear after the LLM pipeline phase is implemented.
-                </div>
-              </div>
+                {item.enrichmentError && (
+                  <div className="p-3 rounded-lg border border-red-500/20 bg-red-500/5 text-xs text-red-500/90 leading-normal">
+                    <span className="font-semibold">Enrichment Error:</span> {item.enrichmentError}
+                  </div>
+                )}
 
-              {/* Muted placeholder items */}
-              <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground/60">
-                <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
-                  <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">What it is</span>
-                  <span>Not enriched yet</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="space-y-1 bg-muted/30 p-3 rounded border border-border/40">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground">What it is</span>
+                    <p className="text-foreground leading-relaxed">{item.whatItIs || "No details provided."}</p>
+                  </div>
+                  <div className="space-y-1 bg-muted/30 p-3 rounded border border-border/40">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground">Problem it solves</span>
+                    <p className="text-foreground leading-relaxed">{item.problemItSolves || "No details provided."}</p>
+                  </div>
+                  <div className="space-y-1 bg-muted/30 p-3 rounded border border-border/40">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground">How it works</span>
+                    <p className="text-foreground leading-relaxed">{item.howItWorks || "No details provided."}</p>
+                  </div>
+                  <div className="space-y-1 bg-muted/30 p-3 rounded border border-border/40">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground">Why now</span>
+                    <p className="text-foreground leading-relaxed">{item.whyNow || "No details provided."}</p>
+                  </div>
                 </div>
-                <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
-                  <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Problem it solves</span>
-                  <span>Not enriched yet</span>
+
+                <div className="space-y-4">
+                  {item.advantages && item.advantages.length > 0 && (
+                    <div className="space-y-1.5 text-xs">
+                      <span className="font-semibold text-[10px] uppercase text-muted-foreground">Advantages</span>
+                      <ul className="list-disc pl-4 space-y-1 text-foreground">
+                        {item.advantages.map((adv, idx) => <li key={idx}>{adv}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {item.limitations && item.limitations.length > 0 && (
+                    <div className="space-y-1.5 text-xs">
+                      <span className="font-semibold text-[10px] uppercase text-muted-foreground">Limitations</span>
+                      <ul className="list-disc pl-4 space-y-1 text-foreground">
+                        {item.limitations.map((lim, idx) => <li key={idx}>{lim}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {item.alternativesOrRelated && item.alternativesOrRelated.length > 0 && (
+                    <div className="space-y-1.5 text-xs">
+                      <span className="font-semibold text-[10px] uppercase text-muted-foreground">Alternatives / Related</span>
+                      <ul className="list-disc pl-4 space-y-1 text-foreground">
+                        {item.alternativesOrRelated.map((alt, idx) => <li key={idx}>{alt}</li>)}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
-                  <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Advantages</span>
-                  <span>Not enriched yet</span>
+
+                {/* Score & Evaluation Info */}
+                <div className="flex flex-wrap items-center gap-4 text-xs border-t border-border/40 pt-4 col-span-2">
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Relevance Score</span>
+                    <span className="font-medium text-foreground">{item.engineeringRelevanceScore !== null ? `${item.engineeringRelevanceScore} / 5` : "N/A"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Recommended Action</span>
+                    <span className="font-medium text-foreground capitalize">{item.recommendedAction || "N/A"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Maturity Level</span>
+                    <span className="font-medium text-foreground capitalize">{item.maturity || "N/A"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground block text-[10px] uppercase">Confidence</span>
+                    <span className="font-medium text-foreground capitalize">{item.confidence || "N/A"}</span>
+                  </div>
                 </div>
-                <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
-                  <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Limitations</span>
-                  <span>Not enriched yet</span>
+
+                {/* Tags */}
+                {item.tags && item.tags.length > 0 && (
+                  <div className="space-y-1.5 text-xs border-t border-border/40 pt-4">
+                    <span className="font-semibold text-[10px] uppercase text-muted-foreground">Associated Tags</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {item.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px] py-0.5 px-2 font-normal text-muted-foreground bg-secondary/60">
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Pre-Enrichment Section */
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">AI Enrichment Details</h3>
+                  <Badge variant="outline" className="bg-yellow-500/5 text-yellow-500/80 border-yellow-500/20 text-[9px] py-0 px-1 font-normal">
+                    Pre-Enrichment Phase
+                  </Badge>
+                </div>
+
+                <div className="p-4 rounded-lg border border-yellow-500/10 bg-yellow-500/5 flex gap-3 text-xs text-yellow-500/95 leading-normal">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    This item was successfully ingested into SQLite but has not been processed by the LLM enrichment pipeline yet. 
+                    Enriched properties (technical architecture, limitations, engineering relevance) will appear after the LLM pipeline phase is implemented.
+                  </div>
+                </div>
+
+                {/* Muted placeholder items */}
+                <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground/60">
+                  <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">What it is</span>
+                    <span>Not enriched yet</span>
+                  </div>
+                  <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Problem it solves</span>
+                    <span>Not enriched yet</span>
+                  </div>
+                  <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Advantages</span>
+                    <span>Not enriched yet</span>
+                  </div>
+                  <div className="space-y-1 bg-background/20 p-3 rounded border border-border/20">
+                    <span className="font-semibold block text-[10px] uppercase text-muted-foreground/80">Limitations</span>
+                    <span>Not enriched yet</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Extracted Content Preview */}
             {(item.extractedContent || item.extractionError || item.extractionMethod) && (

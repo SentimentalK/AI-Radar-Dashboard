@@ -17,7 +17,8 @@
     "sources:inspect": "tsx src/sources/inspect-sources.ts",
     "sync": "tsx src/jobs/sync.ts",
     "extract": "tsx src/jobs/extract.ts",
-    "eval:llm": "tsx src/jobs/eval-llm.ts"
+    "eval:llm": "tsx src/jobs/eval-llm.ts",
+    "enrich": "tsx src/jobs/enrich.ts"
   },
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.2.14",

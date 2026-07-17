@@ -47,7 +47,7 @@ interface DbItemRow {
   source_name?: string | null;
 }
 
-function mapRowToApiItem(row: DbItemRow): ApiItem {
+function mapRowToApiItem(row: DbItemRow, tags: string[] = []): ApiItem {
   return {
     id: row.id,
     sourceId: row.source_id,
@@ -83,6 +83,7 @@ function mapRowToApiItem(row: DbItemRow): ApiItem {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     sourceName: row.source_name ?? null,
+    tags,
   };
 }
 
@@ -162,8 +163,29 @@ export function listItems(filters: ListItemsFilters): {
 
     const rows = db.prepare(selectSql).all({ ...params, limit, offset }) as DbItemRow[];
 
+    const itemIds = rows.map((r) => r.id);
+    const tagsMap = new Map<string, string[]>();
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => "?").join(",");
+      const tagsSql = `
+        SELECT item_tags.item_id, tags.name 
+        FROM item_tags 
+        JOIN tags ON tags.id = item_tags.tag_id 
+        WHERE item_tags.item_id IN (${placeholders})
+      `;
+      const tagsRows = db.prepare(tagsSql).all(itemIds) as { item_id: string; name: string }[];
+      for (const tRow of tagsRows) {
+        let list = tagsMap.get(tRow.item_id);
+        if (!list) {
+          list = [];
+          tagsMap.set(tRow.item_id, list);
+        }
+        list.push(tRow.name);
+      }
+    }
+
     return {
-      items: rows.map(mapRowToApiItem),
+      items: rows.map((row) => mapRowToApiItem(row, tagsMap.get(row.id) || [])),
       total,
       limit,
       offset,
@@ -185,7 +207,17 @@ export function getItemById(id: string): ApiItem | null {
       WHERE items.id = ?
     `).get(id) as DbItemRow | undefined;
 
-    return row ? mapRowToApiItem(row) : null;
+    if (!row) return null;
+
+    const tagsRows = db.prepare(`
+      SELECT tags.name 
+      FROM item_tags 
+      JOIN tags ON tags.id = item_tags.tag_id 
+      WHERE item_tags.item_id = ?
+    `).all(id) as { name: string }[];
+    const tags = tagsRows.map((r) => r.name);
+
+    return mapRowToApiItem(row, tags);
   } finally {
     db.close();
   }
@@ -241,7 +273,29 @@ export function listTimelineGroups(input: {
     `;
 
     const rows = db.prepare(selectSql).all({ ...params, queryLimit }) as DbItemRow[];
-    const apiItems = rows.map(mapRowToApiItem);
+
+    const itemIds = rows.map((r) => r.id);
+    const tagsMap = new Map<string, string[]>();
+    if (itemIds.length > 0) {
+      const placeholders = itemIds.map(() => "?").join(",");
+      const tagsSql = `
+        SELECT item_tags.item_id, tags.name 
+        FROM item_tags 
+        JOIN tags ON tags.id = item_tags.tag_id 
+        WHERE item_tags.item_id IN (${placeholders})
+      `;
+      const tagsRows = db.prepare(tagsSql).all(itemIds) as { item_id: string; name: string }[];
+      for (const tRow of tagsRows) {
+        let list = tagsMap.get(tRow.item_id);
+        if (!list) {
+          list = [];
+          tagsMap.set(tRow.item_id, list);
+        }
+        list.push(tRow.name);
+      }
+    }
+
+    const apiItems = rows.map((row) => mapRowToApiItem(row, tagsMap.get(row.id) || []));
 
     // Group items by date string (YYYY-MM-DD)
     const groupsMap = new Map<string, ApiItem[]>();
