@@ -14,6 +14,13 @@ const parser = new Parser({
 export function buildArxivApiUrl(source: SourceConfig): string {
   const baseUrl = "https://export.arxiv.org/api/query";
   const config = (source.config || {}) as Record<string, any>;
+  const url = new URL(baseUrl);
+
+  // If a specific list of paper IDs is provided, query them directly
+  if (config.idList && Array.isArray(config.idList) && config.idList.length > 0) {
+    url.searchParams.set("id_list", config.idList.join(","));
+    return url.toString();
+  }
 
   let query = config.query;
   if (!query && config.category) {
@@ -36,7 +43,6 @@ export function buildArxivApiUrl(source: SourceConfig): string {
   const sortBy = config.sortBy || "submittedDate";
   const sortOrder = config.sortOrder || "descending";
 
-  const url = new URL(baseUrl);
   url.searchParams.set("search_query", query);
   url.searchParams.set("start", "0");
   url.searchParams.set("max_results", maxResults.toString());

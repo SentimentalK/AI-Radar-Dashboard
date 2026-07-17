@@ -9,6 +9,8 @@ const VALID_FETCH_METHODS: FetchMethod[] = [
   "github_trending",
   "github_api",
   "github_releases",
+  "huggingface_daily_papers",
+  "anthropic_listing",
   "scraper",
   "manual",
 ];

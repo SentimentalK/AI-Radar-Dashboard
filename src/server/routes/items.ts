@@ -24,6 +24,7 @@ router.get("/timeline", (req, res) => {
       category: req.query.category as string,
       recommendedAction: req.query.recommendedAction as string,
       minRelevance: isNaN(Number(minRelevance)) ? undefined : minRelevance,
+      q: req.query.q as string,
     });
 
     res.json({ groups });

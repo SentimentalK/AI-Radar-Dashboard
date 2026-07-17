@@ -19,6 +19,15 @@ async function runSync() {
 
   console.log(`Loaded enabled sources: ${enabledSources.length}\n`);
 
+  // Sort sources dynamically by config.priority (defaulting to 999)
+  enabledSources.sort((a, b) => {
+    const configA = (a.config || {}) as Record<string, any>;
+    const configB = (b.config || {}) as Record<string, any>;
+    const priorityA = configA.priority !== undefined ? Number(configA.priority) : 999;
+    const priorityB = configB.priority !== undefined ? Number(configB.priority) : 999;
+    return priorityA - priorityB;
+  });
+
   let succeededSourcesCount = 0;
   let failedSourcesCount = 0;
   let totalFetchedCount = 0;

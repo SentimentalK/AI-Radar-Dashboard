@@ -30,6 +30,7 @@ export async function getTimeline(params?: {
   recommendedAction?: string;
   minRelevance?: number;
   limitPerDay?: number;
+  q?: string;
 }): Promise<{
   groups: ApiTimelineGroup[];
 }> {
@@ -41,6 +42,7 @@ export async function getTimeline(params?: {
     if (params.recommendedAction) query.append("recommendedAction", params.recommendedAction);
     if (params.minRelevance !== undefined) query.append("minRelevance", String(params.minRelevance));
     if (params.limitPerDay !== undefined) query.append("limitPerDay", String(params.limitPerDay));
+    if (params.q) query.append("q", params.q);
   }
   const queryString = query.toString();
   const url = `/api/items/timeline${queryString ? `?${queryString}` : ""}`;

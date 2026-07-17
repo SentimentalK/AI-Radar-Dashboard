@@ -230,6 +230,7 @@ export function listTimelineGroups(input: {
   recommendedAction?: string;
   minRelevance?: number;
   limitPerDay?: number;
+  q?: string;
 }): ApiTimelineGroup[] {
   const db = createDb();
   
@@ -256,6 +257,10 @@ export function listTimelineGroups(input: {
       whereClauses.push("items.engineering_relevance_score >= @minRelevance");
       params.minRelevance = input.minRelevance;
     }
+    if (input.q) {
+      whereClauses.push("(items.title LIKE @q OR items.raw_excerpt LIKE @q OR sources.name LIKE @q)");
+      params.q = `%${input.q}%`;
+    }
 
     const whereStr = whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
 
@@ -271,6 +276,8 @@ export function listTimelineGroups(input: {
       ORDER BY COALESCE(items.published_at, items.fetched_at) DESC
       LIMIT @queryLimit
     `;
+
+
 
     const rows = db.prepare(selectSql).all({ ...params, queryLimit }) as DbItemRow[];
 

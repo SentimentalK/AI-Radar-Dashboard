@@ -16,9 +16,19 @@ export default function TimelinePage() {
   // Filter states
   const [days, setDays] = useState(7);
   const [sourceType, setSourceType] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   // Detail Drawer state
   const [selectedItem, setSelectedItem] = useState<ApiItem | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const fetchTimelineData = async () => {
     setLoading(true);
@@ -27,6 +37,7 @@ export default function TimelinePage() {
       const data = await getTimeline({
         days,
         sourceType: sourceType || undefined,
+        q: debouncedSearchQuery || undefined,
       });
       setGroups(data.groups);
     } catch (err) {
@@ -39,7 +50,7 @@ export default function TimelinePage() {
 
   useEffect(() => {
     fetchTimelineData();
-  }, [days, sourceType]);
+  }, [days, sourceType, debouncedSearchQuery]);
 
   return (
     <div className="flex-1 p-6 space-y-6">
@@ -65,7 +76,9 @@ export default function TimelinePage() {
         days={days} 
         setDays={setDays} 
         sourceType={sourceType} 
-        setSourceType={setSourceType} 
+        setSourceType={setSourceType}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery} 
       />
 
       {/* States */}

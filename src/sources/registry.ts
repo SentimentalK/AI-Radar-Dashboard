@@ -2,6 +2,9 @@ import type { FetchMethod, SourceAdapter } from "./types";
 import { rssAdapter } from "./adapters/rss";
 import { arxivAdapter } from "./adapters/arxiv";
 import { githubReleasesAdapter } from "./adapters/githubReleases";
+import { huggingFaceDailyPapersAdapter } from "./adapters/huggingFaceDailyPapers";
+import { githubTrendingAdapter } from "./adapters/githubTrending";
+import { anthropicListingAdapter } from "./adapters/anthropicListing";
 
 const adapters = new Map<FetchMethod, SourceAdapter>();
 
@@ -31,8 +34,11 @@ export const manualAdapter: SourceAdapter = {
   },
 };
 
-// Register manual, rss, arxiv, and github_releases adapters
+// Register adapters
 registerAdapter(manualAdapter);
 registerAdapter(rssAdapter);
 registerAdapter(arxivAdapter);
 registerAdapter(githubReleasesAdapter);
+registerAdapter(huggingFaceDailyPapersAdapter);
+registerAdapter(githubTrendingAdapter);
+registerAdapter(anthropicListingAdapter);

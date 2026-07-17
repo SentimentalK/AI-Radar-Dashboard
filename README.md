@@ -235,6 +235,47 @@ docker compose exec api sh -c "LLM_PROVIDER=groq GROQ_API_KEY=your_groq_api_key 
 
 ---
 
+## Local Data Pull (Phase 10)
+
+Phase 10 provides a unified orchestrator script to pull, extract, and optionally enrich data to compile a standalone SQLite data artifact (`data/radar.sqlite`).
+
+### Ingestion Runbook
+Run the local data pull workflow:
+```bash
+npm run data:pull
+```
+
+Options:
+- `--no-enrich`: skips LLM enrichment (runs only sync and extraction, no Groq keys required).
+- `--enrich-limit <number>`: overrides the number of items to enrich (default is 10).
+- `--skip-seed`: skips resetting and seeding source tables.
+- `--skip-extract`: skips raw content extraction.
+- `--fresh`: (Danger Zone) Deletes existing `data/radar.sqlite` and WAL logs before initiating migrations.
+
+### Raw Data Harvesting (No LLM Required):
+To quickly harvest raw items and extract content offline without any LLM keys:
+```bash
+npm run data:pull -- --no-enrich
+```
+
+### Enriched Data Harvesting:
+```bash
+GROQ_API_KEY=your_key_here npm run data:pull -- --enrich-limit 30
+```
+
+### Database Inspection & Checkpointing
+You can inspect the resulting SQLite data artifact counts:
+```bash
+npm run db:inspect
+```
+
+Prepare the database for standalone file transfers (merges WAL logs and runs PRAGMA optimizations):
+```bash
+npm run db:checkpoint
+```
+
+---
+
 ## Read-only API
 
 Phase 4 exposes read-only API routes over the materialized SQLite data.
