@@ -4,6 +4,8 @@ export type ExtractionCandidate = {
   id: string;
   title: string;
   url: string;
+  publishedAt: string | null;
+  fetchedAt: string | null;
   rawExcerpt: string | null;
   rawContent: string | null;
 };
@@ -26,21 +28,23 @@ export function listExtractionCandidates(input?: {
       ? "WHERE extracted_content IS NULL"
       : "WHERE extracted_at IS NULL";
 
+    // Newest-first: always drain the most recent items before older backlog.
     const query = `
-      SELECT id, title, url, raw_excerpt as rawExcerpt, raw_content as rawContent
+      SELECT
+        id,
+        title,
+        url,
+        published_at as publishedAt,
+        fetched_at as fetchedAt,
+        raw_excerpt as rawExcerpt,
+        raw_content as rawContent
       FROM items
       ${sqlFilter}
-      ORDER BY COALESCE(published_at, fetched_at) DESC
+      ORDER BY COALESCE(published_at, fetched_at) DESC, fetched_at DESC, id DESC
       LIMIT ?
     `;
 
-    const rows = db.prepare(query).all(limit) as {
-      id: string;
-      title: string;
-      url: string;
-      rawExcerpt: string | null;
-      rawContent: string | null;
-    }[];
+    const rows = db.prepare(query).all(limit) as ExtractionCandidate[];
 
     return rows;
   } finally {

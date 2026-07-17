@@ -19,6 +19,7 @@
     "extract": "tsx src/jobs/extract.ts",
     "eval:llm": "tsx src/jobs/eval-llm.ts",
     "enrich": "tsx src/jobs/enrich.ts",
+    "backfill:enrich": "tsx src/jobs/backfillEnrich.ts",
     "db:checkpoint": "tsx src/jobs/checkpointSqlite.ts",
     "data:pull": "tsx src/jobs/dataPull.ts",
     "test:adapters": "tsx --test src/sources/adapters/__tests__/*.test.ts"

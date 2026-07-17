@@ -9,10 +9,15 @@ import { enrichItem } from "../llm/enrichItem";
 
 dotenv.config();
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   let limit = parseInt(process.env.ENRICH_BATCH_SIZE || "10", 10);
   let retryFailed = process.env.ENRICH_RETRY_FAILED === "true";
+  let itemDelayMs = parseInt(process.env.ENRICH_ITEM_DELAY_MS || "0", 10);
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--limit" && args[i + 1]) {
@@ -23,14 +28,20 @@ function parseArgs() {
       i++;
     } else if (args[i] === "--retry-failed") {
       retryFailed = true;
+    } else if (args[i] === "--item-delay-ms" && args[i + 1]) {
+      const parsedDelay = parseInt(args[i + 1], 10);
+      if (!isNaN(parsedDelay)) {
+        itemDelayMs = parsedDelay;
+      }
+      i++;
     }
   }
 
-  return { limit, retryFailed };
+  return { limit, retryFailed, itemDelayMs: Math.max(itemDelayMs, 0) };
 }
 
 async function runEnrichmentJob() {
-  const { limit, retryFailed } = parseArgs();
+  const { limit, retryFailed, itemDelayMs } = parseArgs();
   const maxChars = parseInt(process.env.ENRICH_MAX_CHARS || "30000", 10);
 
   console.log("AI Radar Enrich\n");
@@ -45,6 +56,7 @@ async function runEnrichmentJob() {
 
   console.log(`Provider:   ${provider.name}`);
   console.log(`Model:      ${provider.model}`);
+  console.log(`Item delay: ${itemDelayMs}ms`);
 
   const candidates = listEnrichmentCandidates({ limit, retryFailed });
   console.log(`Candidates: ${candidates.length}\n`);
@@ -59,7 +71,8 @@ async function runEnrichmentJob() {
   let totalRepairs = 0;
   let totalWarnings = 0;
 
-  for (const item of candidates) {
+  for (let i = 0; i < candidates.length; i++) {
+    const item = candidates[i];
     try {
       const result = await enrichItem({
         provider,
@@ -96,6 +109,11 @@ async function runEnrichmentJob() {
       });
 
       failed++;
+    }
+
+    // Pace requests so overnight runs are less likely to trip provider RPM/TPM limits.
+    if (itemDelayMs > 0 && i < candidates.length - 1) {
+      await sleep(itemDelayMs);
     }
   }
 

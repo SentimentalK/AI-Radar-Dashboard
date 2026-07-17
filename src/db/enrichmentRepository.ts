@@ -39,7 +39,9 @@ export function listEnrichmentCandidates(input?: {
         LEFT JOIN sources ON sources.id = items.source_id
         WHERE items.extracted_content IS NOT NULL
           AND items.enriched_at IS NULL
-        ORDER BY COALESCE(items.published_at, items.fetched_at) DESC
+        ORDER BY COALESCE(items.published_at, items.fetched_at) DESC,
+                 items.extracted_at DESC,
+                 items.id DESC
         LIMIT ?
       `;
     } else {
@@ -60,7 +62,9 @@ export function listEnrichmentCandidates(input?: {
         WHERE items.extracted_content IS NOT NULL
           AND items.enriched_at IS NULL
           AND items.enrichment_error IS NULL
-        ORDER BY COALESCE(items.published_at, items.fetched_at) DESC
+        ORDER BY COALESCE(items.published_at, items.fetched_at) DESC,
+                 items.extracted_at DESC,
+                 items.id DESC
         LIMIT ?
       `;
     }

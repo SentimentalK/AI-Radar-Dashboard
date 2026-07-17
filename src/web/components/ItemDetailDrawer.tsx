@@ -23,7 +23,7 @@ export default function ItemDetailDrawer({ item, onClose }: ItemDetailDrawerProp
       />
       
       {/* Slide-over panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-card border-l border-border shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-3/4 bg-card border-l border-border shadow-2xl flex flex-col h-full animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div className="p-6 flex items-center justify-between border-b border-border">
           <div className="space-y-1">
