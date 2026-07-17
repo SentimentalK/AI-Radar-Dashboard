@@ -1,4 +1,6 @@
-FROM node:22-alpine AS build
+# Build JS once on the builder host arch (static assets are arch-independent).
+# Avoids QEMU-emulated npm/vite on linux/arm64, which can hang or crash.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 WORKDIR /app
 
