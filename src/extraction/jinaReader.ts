@@ -39,11 +39,17 @@ export async function extractWithJinaReader(input: ExtractionInput): Promise<Ext
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const headers: Record<string, string> = {
+      Accept: "text/plain",
+    };
+
+    if (process.env.JINA_API_KEY) {
+      headers["Authorization"] = `Bearer ${process.env.JINA_API_KEY}`;
+    }
+
     const response = await fetch(readerUrl, {
       signal: controller.signal,
-      headers: {
-        Accept: "text/plain",
-      },
+      headers,
     });
 
     clearTimeout(timeoutId);

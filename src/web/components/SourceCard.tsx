@@ -2,6 +2,7 @@ import type { ApiSource } from '../../shared/apiTypes';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Globe } from 'lucide-react';
+import { formatDateTime } from '../lib/format';
 
 interface SourceCardProps {
   source: ApiSource;
@@ -61,6 +62,36 @@ export default function SourceCard({ source }: SourceCardProps) {
               <Globe className="h-3 w-3 shrink-0" />
               <span className="truncate">{source.url}</span>
             </a>
+          </div>
+        )}
+
+        {/* Ingestion health tracking */}
+        {source.lastRunStatus && (
+          <div className="pt-2 border-t border-border/50 space-y-1">
+            <span className="text-[10px] text-muted-foreground uppercase font-semibold block tracking-wider">
+              Last Ingestion
+            </span>
+            <div className="flex items-center gap-2">
+              {source.lastRunStatus === "success" ? (
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] py-0 px-1 font-normal">
+                  Success
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-rose-500/10 text-rose-500 border-rose-500/20 text-[9px] py-0 px-1 font-normal">
+                  Failed
+                </Badge>
+              )}
+              {source.lastRunAt && (
+                <span className="text-[10px] text-muted-foreground">
+                  {formatDateTime(source.lastRunAt)}
+                </span>
+              )}
+            </div>
+            {source.lastRunError && (
+              <p className="text-[10px] text-rose-500/90 italic truncate max-w-full leading-snug">
+                Error: {source.lastRunError}
+              </p>
+            )}
           </div>
         )}
 

@@ -1,5 +1,7 @@
 import type { FetchMethod, SourceAdapter } from "./types";
 import { rssAdapter } from "./adapters/rss";
+import { arxivAdapter } from "./adapters/arxiv";
+import { githubReleasesAdapter } from "./adapters/githubReleases";
 
 const adapters = new Map<FetchMethod, SourceAdapter>();
 
@@ -29,6 +31,8 @@ export const manualAdapter: SourceAdapter = {
   },
 };
 
-// Register manual and rss adapters
+// Register manual, rss, arxiv, and github_releases adapters
 registerAdapter(manualAdapter);
 registerAdapter(rssAdapter);
+registerAdapter(arxivAdapter);
+registerAdapter(githubReleasesAdapter);

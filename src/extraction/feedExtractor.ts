@@ -4,7 +4,11 @@ import { cleanText, truncateText, isUsefulContent } from "./text";
 export function extractFromFeed(input: ExtractionInput): ExtractionResult {
   const maxChars = parseInt(process.env.EXTRACTION_MAX_CHARS || "40000", 10);
 
-  if (input.rawContent && isUsefulContent(input.rawContent)) {
+  const isArxiv = input.url.includes("arxiv.org");
+  const isGithubReleases = input.url.includes("github.com") && input.url.includes("/releases");
+  const bypassThreshold = isArxiv || isGithubReleases;
+
+  if (input.rawContent && (bypassThreshold ? input.rawContent.trim().length > 0 : isUsefulContent(input.rawContent))) {
     const cleaned = cleanText(input.rawContent);
     return {
       success: true,
@@ -13,7 +17,7 @@ export function extractFromFeed(input: ExtractionInput): ExtractionResult {
     };
   }
 
-  if (input.rawExcerpt && isUsefulContent(input.rawExcerpt)) {
+  if (input.rawExcerpt && (bypassThreshold ? input.rawExcerpt.trim().length > 0 : isUsefulContent(input.rawExcerpt))) {
     const cleaned = cleanText(input.rawExcerpt);
     return {
       success: true,

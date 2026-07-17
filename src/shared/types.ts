@@ -11,6 +11,7 @@ export type FetchMethod =
   | "arxiv"
   | "github_trending"
   | "github_api"
+  | "github_releases"
   | "scraper"
   | "manual";
 

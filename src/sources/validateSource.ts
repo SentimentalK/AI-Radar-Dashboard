@@ -2,7 +2,16 @@ import { SourceConfig } from "./types";
 import { SourceType, FetchMethod } from "../shared/types";
 
 const VALID_SOURCE_TYPES: SourceType[] = ["paper", "official", "repo", "blog", "community"];
-const VALID_FETCH_METHODS: FetchMethod[] = ["rss", "rsshub", "arxiv", "github_trending", "github_api", "scraper", "manual"];
+const VALID_FETCH_METHODS: FetchMethod[] = [
+  "rss",
+  "rsshub",
+  "arxiv",
+  "github_trending",
+  "github_api",
+  "github_releases",
+  "scraper",
+  "manual",
+];
 
 export function validateSourceConfig(source: SourceConfig): void {
   if (!source.id || source.id.trim() === "") {

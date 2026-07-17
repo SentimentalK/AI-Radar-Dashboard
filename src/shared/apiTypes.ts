@@ -60,6 +60,9 @@ export type ApiSource = {
   config: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  lastRunStatus?: string | null;
+  lastRunAt?: string | null;
+  lastRunError?: string | null;
 };
 
 export type ApiSyncRun = {
