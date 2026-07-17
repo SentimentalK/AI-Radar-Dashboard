@@ -19,8 +19,6 @@ const VALID_FETCH_METHODS: FetchMethod[] = [
 ];
 
 const defaultSources = [
-  // === TIER 1 - CORE ACTIVE SOURCES ===
-
   // 1. Hugging Face Daily Papers (Priority 10)
   {
     id: "hf-daily-papers",
@@ -32,9 +30,10 @@ const defaultSources = [
     config: {
       priority: 10,
       sourceRole: "research_discovery",
-      limit: 30,
+      limit: 150,
       minimumUpvotes: 2,
       includeZeroVotePapers: false,
+      days: 15,
     },
   },
 
@@ -81,7 +80,6 @@ const defaultSources = [
         "mcp",
         "prompt-engineering"
       ],
-      // Fallback keywords if feed tags/categories are absent
       includeKeywords: ["ai", "llm", "agent", "mcp", "claude", "gpt"]
     },
   },
@@ -165,223 +163,6 @@ const defaultSources = [
       preferFullContent: true,
     },
   },
-
-  // === TIER 2 - CONDITIONAL & DISABLED BACKFILLS / DEPRECATED ===
-
-  // 9. Artificial Analysis (Disabled until formal API change-detection is implemented)
-  {
-    id: "artificial-analysis-models",
-    name: "Artificial Analysis Model Intelligence",
-    type: "official",
-    fetchMethod: "manual",
-    url: "https://artificialanalysis.ai",
-    enabled: 0,
-    config: {
-      priority: 80,
-      sourceRole: "model_intelligence",
-      maxResults: 20,
-    },
-  },
-
-  // 10. Deprecated Hacker News AI Search (Pruned to preserve history)
-  {
-    id: "hn-ai-search",
-    name: "Hacker News AI Search RSS",
-    type: "community",
-    fetchMethod: "rss",
-    url: "https://hnrss.org/newest?q=AI",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "community_discussion",
-      note: "Disabled to reduce noise",
-    },
-  },
-
-  // 11. Deprecated GitHub Blog
-  {
-    id: "github-blog",
-    name: "GitHub Blog",
-    type: "blog",
-    fetchMethod: "rss",
-    url: "https://github.blog/feed/",
-    enabled: 0,
-    config: {
-      priority: 90,
-      note: "Disabled to prioritize official announcements",
-    },
-  },
-
-  // 12. Deprecated Direct arXiv Feeds
-  {
-    id: "arxiv-ai-agents",
-    name: "arXiv AI Agents",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "backfill",
-      query: "cat:cs.AI AND (all:agent OR all:agents OR all:autonomous)",
-      maxResults: 100,
-    },
-  },
-  {
-    id: "arxiv-rag-memory",
-    name: "arXiv RAG and Memory",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "backfill",
-      query: "(cat:cs.CL OR cat:cs.AI OR cat:cs.IR) AND (all:RAG OR all:retrieval OR all:memory)",
-      maxResults: 100,
-    },
-  },
-  {
-    id: "arxiv-coding-agents",
-    name: "arXiv Coding Agents",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "backfill",
-      query: "(cat:cs.SE OR cat:cs.AI OR cat:cs.CL) AND (all:code OR all:programming OR all:software OR all:agent)",
-      maxResults: 100,
-    },
-  },
-  {
-    id: "arxiv-llm-evaluation",
-    name: "arXiv LLM Evaluation",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "backfill",
-      query: "(cat:cs.CL OR cat:cs.AI OR cat:cs.LG) AND (all:evaluation OR all:benchmark OR all:hallucination)",
-      maxResults: 100,
-    },
-  },
-  {
-    id: "arxiv-local-llm-inference",
-    name: "arXiv Local LLM and Inference",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "backfill",
-      query: "(cat:cs.LG OR cat:cs.CL OR cat:cs.AI) AND (all:inference OR all:quantization OR all:serving OR all:latency)",
-      maxResults: 100,
-    },
-  },
-  {
-    id: "arxiv-specific-papers",
-    name: "arXiv Specific Papers Pinned",
-    type: "paper",
-    fetchMethod: "arxiv",
-    url: "https://export.arxiv.org/api/query",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "watchlist",
-      idList: ["2607.01456"],
-    },
-  },
-
-  // 13. Deprecated Fixed Repo Release Watchlists
-  {
-    id: "github-mcp-typescript-sdk-releases",
-    name: "GitHub MCP TypeScript SDK Releases",
-    type: "repo",
-    fetchMethod: "github_releases",
-    url: "https://github.com/modelcontextprotocol/typescript-sdk",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "watchlist",
-      owner: "modelcontextprotocol",
-      repo: "typescript-sdk",
-      maxResults: 30,
-    },
-  },
-  {
-    id: "github-ollama-releases",
-    name: "GitHub Ollama Releases",
-    type: "repo",
-    fetchMethod: "github_releases",
-    url: "https://github.com/ollama/ollama",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "watchlist",
-      owner: "ollama",
-      repo: "ollama",
-      maxResults: 30,
-    },
-  },
-  {
-    id: "github-vllm-releases",
-    name: "GitHub vLLM Releases",
-    type: "repo",
-    fetchMethod: "github_releases",
-    url: "https://github.com/vllm-project/vllm",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "watchlist",
-      owner: "vllm-project",
-      repo: "vllm",
-      maxResults: 30,
-    },
-  },
-  {
-    id: "github-open-webui-releases",
-    name: "GitHub Open WebUI Releases",
-    type: "repo",
-    fetchMethod: "github_releases",
-    url: "https://github.com/open-webui/open-webui",
-    enabled: 0,
-    config: {
-      priority: 90,
-      sourceRole: "watchlist",
-      owner: "open-webui",
-      repo: "open-webui",
-      maxResults: 30,
-    },
-  },
-
-  // 14. Deprecated OpenAI / Anthropic RSS placeholders
-  {
-    id: "openai-official",
-    name: "OpenAI Official Updates",
-    type: "official",
-    fetchMethod: "rss",
-    url: "https://openai.com/news/",
-    enabled: 0,
-    config: {
-      priority: 90,
-    },
-  },
-  {
-    id: "anthropic-official",
-    name: "Anthropic Official Updates",
-    type: "official",
-    fetchMethod: "rss",
-    url: "https://www.anthropic.com/news",
-    enabled: 0,
-    config: {
-      priority: 90,
-    },
-  },
 ];
 
 function seed() {
@@ -438,11 +219,9 @@ function seed() {
   }
 }
 
-// Check if running as script directly
 if (process.argv[1] && process.argv[1].endsWith("seed-sources.ts")) {
   seed();
 } else {
-  // exported for test runs
   // @ts-ignore
   seed.defaultSources = defaultSources;
 }
