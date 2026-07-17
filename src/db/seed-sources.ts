@@ -33,7 +33,7 @@ const defaultSources = [
       limit: 150,
       minimumUpvotes: 2,
       includeZeroVotePapers: false,
-      days: 15,
+      days: 30,
     },
   },
 

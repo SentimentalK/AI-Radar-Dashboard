@@ -28,6 +28,9 @@ data/*.sqlite
 data/*.sqlite-*
 
 .env
+.cursor
+graphify-out
+.graphifyignore
 
 # Evaluation reports
 reports/*.json
