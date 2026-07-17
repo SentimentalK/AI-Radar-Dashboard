@@ -1,5 +1,11 @@
 import type { LlmMessage } from "./types";
 import { truncateText } from "../extraction/text";
+import {
+  RECOMMENDED_ACTION_VALUES,
+  CATEGORY_VALUES,
+  MATURITY_VALUES,
+  CONFIDENCE_VALUES,
+} from "./schema";
 
 export type BuildCardPromptInput = {
   sourceType: string;
@@ -42,6 +48,21 @@ Source content:
 """
 ${truncatedContent}
 """
+
+Allowed enum values:
+- recommended_action must be exactly one of: ${RECOMMENDED_ACTION_VALUES.map((v) => `"${v}"`).join(", ")}
+- category must be exactly one of: ${CATEGORY_VALUES.map((v) => `"${v}"`).join(", ")}
+- maturity must be exactly one of: ${MATURITY_VALUES.map((v) => `"${v}"`).join(", ")}
+- confidence must be exactly one of: ${CONFIDENCE_VALUES.map((v) => `"${v}"`).join(", ")}
+
+Enum selection rules:
+- Never invent new enum values.
+- If the source is about web frameworks, frontend architecture, deployment, APIs, or platform engineering, use category = "infra" or "other".
+- If the source is a library, repo, SDK, CLI, or developer tool, prefer category = "open_source_tool" when applicable.
+- If the source is about benchmarks, evals, testing, or measurement, use category = "evaluation".
+- If the source is a weak/noisy announcement with insufficient technical detail, use recommended_action = "ignore" or "monitor", never "try" or "adopt".
+- If the source is stable/mature, use maturity = "production". Do not output "stable".
+- If the source says something is worth evaluating, map that to recommended_action = "read" or "try". Do not output "evaluate".
 
 Return exactly this JSON shape:
 {

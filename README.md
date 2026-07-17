@@ -154,7 +154,7 @@ The extraction job:
 
 ## LLM Evaluation
 
-Phase 7 introduces the LLM provider abstraction and evaluation script. It supports running mock offline tests and live Zhipu GLM completions, validating results against a strict Zod-based radar card schema, performing quality assurance checks, and saving JSON results under the `reports/` folder.
+Phase 7 introduces the LLM provider abstraction and evaluation framework. It supports running mock offline tests, Zhipu GLM completions, and Groq GPT-OSS-120B completions. Output responses are validated against a strict Zod-based radar card schema, processed by a deterministic enum-only repair layer on validation failure, audited for engineering quality, and recorded as JSON reports under the `reports/` folder.
 
 **The evaluation job does not write any enrichment results or tags back to SQLite.** It is strictly evaluation-only.
 
@@ -166,14 +166,32 @@ LLM_PROVIDER=mock npm run eval:llm
 ### Run Live Zhipu GLM Evaluation
 Configure `ZHIPU_API_KEY` in `.env` and run:
 ```bash
-LLM_PROVIDER=zhipu ZHIPU_API_KEY=your_key_here ZHIPU_MODEL=glm-4.7-flash npm run eval:llm
+LLM_PROVIDER=zhipu ZHIPU_API_KEY=your_key_here ZHIPU_MODEL=glm-4.5-flash npm run eval:llm
 ```
+
+### Run Live Groq GPT-OSS-120B Evaluation
+Configure `GROQ_API_KEY` in `.env` (requires available account quota) and run:
+```bash
+LLM_PROVIDER=groq GROQ_API_KEY=your_key_here GROQ_MODEL=openai/gpt-oss-120b npm run eval:llm
+```
+
+### Run Side-by-Side Comparison
+Compare multiple targets concurrently by setting `LLM_EVAL_COMPARE=true`:
+```bash
+LLM_EVAL_COMPARE=true LLM_EVAL_COMPARE_TARGETS=zhipu:glm-4.5-flash,groq:openai/gpt-oss-120b npm run eval:llm
+```
+This generates a comparative JSON report `reports/llm-compare-<timestamp>.json` and outputs a side-by-side performance table.
 
 Options:
 - `LLM_EVAL_USE_LIVE_DB=true`: reads a small batch of actual database items (`extracted_content IS NOT NULL`) as inputs instead of using static fixtures.
 - `LLM_EVAL_OUTPUT_DIR=<path>`: overrides the output folder for JSON reports.
 
-*Note: Do not commit ZHIPU_API_KEY tokens or generated reports. All `reports/*.json` files are automatically excluded in `.gitignore`.*
+### Key Assessment Rules:
+- **Enum-only Repair**: If a schema validation fails, a deterministic repair layer attempts to map common out-of-bound strings (e.g. `web_framework -> infra`, `evaluate -> read`, `stable -> production`) for enums.
+- **Pass Status**: Cases are assigned a `caseStatus` of `pass` (clean schema and quality checks), `pass_with_repair` (schema passed only after applying repairs), `warn` (schema passed but quality checks emitted warnings), or `fail`.
+- **Model Selection**: The selected production model for Phase 8 should be chosen based on schema pass rate, warning counts, hallucination reviews, and average call latency.
+
+*Note: Do not commit API keys or generated reports. All `reports/*.json` files are automatically excluded in `.gitignore`.*
 
 ---
 

@@ -1,5 +1,41 @@
 import { z } from "zod";
 
+export const RECOMMENDED_ACTION_VALUES = [
+  "ignore",
+  "monitor",
+  "read",
+  "try",
+  "adopt",
+] as const;
+
+export const CATEGORY_VALUES = [
+  "agent",
+  "rag",
+  "memory",
+  "coding_agent",
+  "evaluation",
+  "model_release",
+  "open_source_tool",
+  "infra",
+  "security",
+  "multimodal",
+  "local_llm",
+  "other",
+] as const;
+
+export const MATURITY_VALUES = [
+  "research",
+  "prototype",
+  "production",
+  "hype",
+] as const;
+
+export const CONFIDENCE_VALUES = [
+  "low",
+  "medium",
+  "high",
+] as const;
+
 export const AiRadarCardSchema = z.object({
   source_content_unavailable: z.boolean(),
 
@@ -17,35 +53,11 @@ export const AiRadarCardSchema = z.object({
 
   engineering_relevance_score: z.number().int().min(1).max(5),
 
-  recommended_action: z.enum([
-    "ignore",
-    "monitor",
-    "read",
-    "try",
-    "adopt",
-  ]),
+  recommended_action: z.enum(RECOMMENDED_ACTION_VALUES),
 
-  category: z.enum([
-    "agent",
-    "rag",
-    "memory",
-    "coding_agent",
-    "evaluation",
-    "model_release",
-    "open_source_tool",
-    "infra",
-    "security",
-    "multimodal",
-    "local_llm",
-    "other",
-  ]),
+  category: z.enum(CATEGORY_VALUES),
 
-  maturity: z.enum([
-    "research",
-    "prototype",
-    "production",
-    "hype",
-  ]),
+  maturity: z.enum(MATURITY_VALUES),
 
   tags: z.array(z.string()),
 
@@ -54,11 +66,7 @@ export const AiRadarCardSchema = z.object({
 
   risk_notes: z.array(z.string()),
 
-  confidence: z.enum([
-    "low",
-    "medium",
-    "high",
-  ]),
+  confidence: z.enum(CONFIDENCE_VALUES),
 });
 
 export type AiRadarCard = z.infer<typeof AiRadarCardSchema>;

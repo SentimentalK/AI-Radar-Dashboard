@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
-import { createLlmProvider } from "../llm/providers";
+import { createLlmProvider, createLlmProviderFromConfig } from "../llm/providers";
 import { buildCardMessages } from "../llm/prompt";
 import { AiRadarCardSchema } from "../llm/schema";
 import { parseModelJson, stringifyValidationError } from "../llm/json";
 import { evaluateCardQuality } from "../llm/evaluate";
+import { repairEnumOnlyOutput } from "../llm/repair";
 import { createDb } from "../db/client";
 
 dotenv.config();
@@ -23,20 +24,16 @@ type EvalInput = {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runEvaluation() {
-  console.log("AI Radar LLM Eval\n");
-  console.log("Loaded ZHIPU_API_KEY:", process.env.ZHIPU_API_KEY ? `${process.env.ZHIPU_API_KEY.slice(0, 8)}...` : "missing");
+  const isCompareMode = process.env.LLM_EVAL_COMPARE === "true";
+  const useLiveDb = process.env.LLM_EVAL_USE_LIVE_DB === "true";
+  const outputDir = path.resolve(process.env.LLM_EVAL_OUTPUT_DIR || "reports");
 
-  let provider;
-  try {
-    provider = createLlmProvider();
-  } catch (err) {
-    console.error("Failed to initialize LLM provider:", (err as Error).message);
-    process.exit(1);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const useLiveDb = process.env.LLM_EVAL_USE_LIVE_DB === "true";
+  // 1. Load test cases (fixtures or live database items)
   let cases: EvalInput[] = [];
-
   if (useLiveDb) {
     console.log("Loading candidates from live SQLite database...");
     const db = createDb();
@@ -49,17 +46,15 @@ async function runEvaluation() {
         LIMIT 5
       `).all() as any[];
 
-      cases = rows.map((row) => {
-        return {
-          id: row.id,
-          sourceType: "blog",
-          sourceName: row.sourceId,
-          title: row.title,
-          url: row.url,
-          publishedAt: row.publishedAt,
-          extractedContent: row.extractedContent,
-        };
-      });
+      cases = rows.map((row) => ({
+        id: row.id,
+        sourceType: "blog",
+        sourceName: row.sourceId,
+        title: row.title,
+        url: row.url,
+        publishedAt: row.publishedAt,
+        extractedContent: row.extractedContent,
+      }));
     } catch (err) {
       console.error("Failed to load live database items:", err);
       db.close();
@@ -76,7 +71,7 @@ async function runEvaluation() {
       "paper-abstract-agent-memory.json",
       "weak-noisy-source.json",
     ];
-    
+
     for (const file of files) {
       const filePath = path.join(fixturesDir, file);
       if (fs.existsSync(filePath)) {
@@ -96,133 +91,302 @@ async function runEvaluation() {
     process.exit(1);
   }
 
-  const results: any[] = [];
-  let parsePassCount = 0;
-  let schemaPassCount = 0;
-  let warningCount = 0;
-  let failedCount = 0;
+  // Helper function to evaluate cases against a target provider
+  async function runTarget(targetConfig: { provider: string; model?: string }) {
+    const provider = createLlmProviderFromConfig(targetConfig);
+    const results: any[] = [];
+    let parsePass = 0;
+    let schemaPassBeforeRepair = 0;
+    let schemaPassAfterRepair = 0;
+    let repairCount = 0;
+    let warningCount = 0;
+    let failed = 0;
+    let totalLatency = 0;
 
-  let isFirst = true;
-  for (const item of cases) {
-    if (!isFirst) {
-      console.log("Waiting 2000ms to respect rate limits...");
-      await sleep(2000);
-    }
-    isFirst = false;
+    let isFirst = true;
+    for (const item of cases) {
+      if (!isFirst) {
+        // Sleep 2000ms sequentially to avoid RPM rate-limiting
+        console.log("Waiting 2000ms to respect rate limits...");
+        await sleep(2000);
+      }
+      isFirst = false;
 
-    console.log(`Running case: ${item.id} ("${item.title}")`);
-    
-    const messages = buildCardMessages(item);
-    
-    try {
-      const response = await provider.generateJson({
-        messages,
-        temperature: 0.1,
-        responseFormat: "json",
-      });
+      console.log(`[${provider.name}/${provider.model}] Running case: ${item.id} ("${item.title}")`);
 
-      const parsed = response.parsedJson;
-      const parseOk = parsed !== null;
-      
-      let schemaOk = false;
-      let validationError: string | null = null;
-      let qualityWarnings: string[] = [];
-      let card = null;
+      const messages = buildCardMessages(item);
+      const startTime = Date.now();
 
-      if (parseOk && parsed) {
-        parsePassCount++;
-        const parseResult = AiRadarCardSchema.safeParse(parsed);
-        if (parseResult.success) {
-          schemaOk = true;
-          schemaPassCount++;
-          card = parseResult.data;
-          qualityWarnings = evaluateCardQuality(card);
-          if (qualityWarnings.length > 0) {
-            warningCount++;
-            console.log(`  [warn] quality warnings: ${qualityWarnings.join("; ")}`);
+      try {
+        const response = await provider.generateJson({
+          messages,
+          temperature: 0.1,
+          responseFormat: "json",
+        });
+
+        const latencyMs = Date.now() - startTime;
+        totalLatency += latencyMs;
+
+        const parsed = response.parsedJson;
+        const parseOk = parsed !== null;
+
+        let schemaOkBeforeRepair = false;
+        let schemaOkAfterRepair = false;
+        let repairs: string[] = [];
+        let qualityWarnings: string[] = [];
+        let card: any = null;
+        let validationError: string | null = null;
+        let caseStatus: "pass" | "pass_with_repair" | "warn" | "fail" = "fail";
+
+        if (parseOk && parsed) {
+          parsePass++;
+
+          // 1. Initial schema check
+          const initialParse = AiRadarCardSchema.safeParse(parsed);
+          if (initialParse.success) {
+            schemaOkBeforeRepair = true;
+            schemaOkAfterRepair = true;
+            schemaPassBeforeRepair++;
+            schemaPassAfterRepair++;
+            card = initialParse.data;
+            qualityWarnings = evaluateCardQuality(card);
+
+            if (qualityWarnings.length > 0) {
+              caseStatus = "warn";
+              warningCount++;
+            } else {
+              caseStatus = "pass";
+            }
           } else {
-            console.log("  [pass] parsed and schema validated successfully");
+            // 2. Perform repair on schema fail
+            const repairResult = repairEnumOnlyOutput(parsed);
+            repairs = repairResult.repairs;
+            repairCount += repairs.length;
+
+            const repairedParse = AiRadarCardSchema.safeParse(repairResult.repairedJson);
+            if (repairedParse.success) {
+              schemaOkAfterRepair = true;
+              schemaPassAfterRepair++;
+              card = repairedParse.data;
+              qualityWarnings = evaluateCardQuality(card);
+              caseStatus = "pass_with_repair";
+              if (qualityWarnings.length > 0) {
+                warningCount++;
+              }
+            } else {
+              caseStatus = "fail";
+              failed++;
+              validationError = stringifyValidationError(repairedParse.error);
+            }
           }
         } else {
-          failedCount++;
-          validationError = stringifyValidationError(parseResult.error);
-          console.log(`  [fail] schema validation failed: ${validationError}`);
+          caseStatus = "fail";
+          failed++;
         }
-      } else {
-        failedCount++;
-        console.log("  [fail] JSON parsing failed");
+
+        console.log(`  [${caseStatus}] parse=${parseOk ? "ok" : "failed"} schema_before=${schemaOkBeforeRepair ? "ok" : "failed"} schema_after=${schemaOkAfterRepair ? "ok" : "failed"} repairs=${repairs.length} warnings=${qualityWarnings.length} latency=${latencyMs}ms`);
+        if (validationError) {
+          console.log(`  └─ validation error: ${validationError}`);
+        }
+
+        results.push({
+          fixtureId: item.id,
+          title: item.title,
+          parseOk,
+          schemaOkBeforeRepair,
+          schemaOkAfterRepair,
+          repairs,
+          qualityWarnings,
+          caseStatus,
+          card,
+          rawText: response.rawText,
+          error: validationError,
+          latencyMs,
+          usage: response.usage,
+        });
+
+      } catch (err) {
+        const latencyMs = Date.now() - startTime;
+        totalLatency += latencyMs;
+        failed++;
+
+        const errorMessage = (err as Error).message;
+        console.log(`  [fail] API call failed: ${errorMessage} latency=${latencyMs}ms`);
+
+        results.push({
+          fixtureId: item.id,
+          title: item.title,
+          parseOk: false,
+          schemaOkBeforeRepair: false,
+          schemaOkAfterRepair: false,
+          repairs: [],
+          qualityWarnings: [],
+          caseStatus: "fail",
+          card: null,
+          rawText: "",
+          error: errorMessage,
+          latencyMs,
+        });
+      }
+    }
+
+    const avgLatencyMs = Math.round(totalLatency / cases.length);
+
+    return {
+      provider: provider.name,
+      model: provider.model,
+      summary: {
+        total: cases.length,
+        parsePass,
+        schemaPassBeforeRepair,
+        schemaPassAfterRepair,
+        repairCount,
+        warningCount,
+        failed,
+        averageLatencyMs: avgLatencyMs,
+      },
+      cases: results,
+    };
+  }
+
+  // ==========================================
+  // Execution Mode Router
+  // ==========================================
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+
+  if (isCompareMode) {
+    console.log("AI Radar LLM Eval Compare Mode\n");
+    const targetsStr = process.env.LLM_EVAL_COMPARE_TARGETS || "zhipu:glm-4-flash,groq:openai/gpt-oss-120b";
+    
+    // Parse targets e.g. "zhipu:glm-4-flash,groq:openai/gpt-oss-120b"
+    const targets = targetsStr.split(",").map((target) => {
+      const parts = target.trim().split(":");
+      return {
+        provider: parts[0],
+        model: parts[1] || undefined,
+      };
+    });
+
+    console.log("Comparison Targets:");
+    for (const t of targets) {
+      console.log(` - ${t.provider} / ${t.model || "default"}`);
+    }
+    console.log("");
+
+    const reportTargetsResults: any[] = [];
+
+    for (const target of targets) {
+      console.log(`--- Running Target: ${target.provider} (${target.model || "default"}) ---`);
+      const runResult = await runTarget(target);
+      reportTargetsResults.push(runResult);
+      console.log("");
+    }
+
+    // Determine simple best metrics
+    let bestBySchema = "none";
+    let bestBySchemaVal = -1;
+    let bestByWarnings = "none";
+    let bestByWarningsVal = Infinity;
+
+    for (const res of reportTargetsResults) {
+      const schemaPass = res.summary.schemaPassAfterRepair;
+      if (schemaPass > bestBySchemaVal) {
+        bestBySchemaVal = schemaPass;
+        bestBySchema = `${res.provider}/${res.model}`;
       }
 
-      results.push({
-        fixtureId: item.id,
-        title: item.title,
-        parseOk,
-        schemaOk,
-        qualityWarnings,
-        card,
-        rawText: response.rawText,
-        error: validationError,
-      });
-
-    } catch (err) {
-      failedCount++;
-      const errorMessage = (err as Error).message;
-      console.log(`  [fail] API call failed: ${errorMessage}\n${(err as Error).stack}`);
-      results.push({
-        fixtureId: item.id,
-        title: item.title,
-        parseOk: false,
-        schemaOk: false,
-        qualityWarnings: [],
-        card: null,
-        rawText: "",
-        error: errorMessage,
-      });
+      const totalFailsAndWarns = res.summary.failed + res.summary.warningCount;
+      if (totalFailsAndWarns < bestByWarningsVal) {
+        bestByWarningsVal = totalFailsAndWarns;
+        bestByWarnings = `${res.provider}/${res.model}`;
+      }
     }
+
+    const reportPath = path.join(outputDir, `llm-compare-${timestamp}.json`);
+    const comparisonReport = {
+      runAt: new Date().toISOString(),
+      mode: "compare",
+      targets: reportTargetsResults,
+      comparison: {
+        bestBySchemaAfterRepair: bestBySchema,
+        bestByFewestWarnings: bestByWarnings,
+        notes: [
+          `Target with best schema pass count after repair: ${bestBySchema} (${bestBySchemaVal}/${cases.length})`,
+          `Target with lowest warning & failure count: ${bestByWarnings} (total score: ${bestByWarningsVal})`,
+        ],
+      },
+    };
+
+    fs.writeFileSync(reportPath, JSON.stringify(comparisonReport, null, 2), "utf-8");
+
+    // Print nice console summary table
+    console.log("=========================================================================================");
+    console.log("AI Radar LLM Eval Compare Summary Table");
+    console.log("=========================================================================================");
+    console.log(
+      "Provider/Model".padEnd(30) +
+      "Parse".padEnd(8) +
+      "Schema(Pre)".padEnd(14) +
+      "Schema(Post)".padEnd(14) +
+      "Repairs".padEnd(10) +
+      "Warnings".padEnd(10) +
+      "Failed".padEnd(8) +
+      "AvgLatency"
+    );
+    console.log("-----------------------------------------------------------------------------------------");
+    for (const res of reportTargetsResults) {
+      const name = `${res.provider}/${res.model}`;
+      console.log(
+        name.padEnd(30) +
+        `${res.summary.parsePass}/${res.summary.total}`.padEnd(8) +
+        `${res.summary.schemaPassBeforeRepair}/${res.summary.total}`.padEnd(14) +
+        `${res.summary.schemaPassAfterRepair}/${res.summary.total}`.padEnd(14) +
+        `${res.summary.repairCount}`.padEnd(10) +
+        `${res.summary.warningCount}`.padEnd(10) +
+        `${res.summary.failed}`.padEnd(8) +
+        `${res.summary.averageLatencyMs}ms`
+      );
+    }
+    console.log("=========================================================================================");
+    console.log(`Report written to: ${reportPath}\n`);
+
+  } else {
+    // Single provider execution
+    const provider = createLlmProvider();
+    console.log(`AI Radar LLM Eval Single Mode (Provider: ${provider.name}, Model: ${provider.model})\n`);
+
+    const runResult = await runTarget({
+      provider: provider.name,
+      model: provider.model,
+    });
+
+    const reportPath = path.join(outputDir, `llm-eval-${timestamp}.json`);
+    const reportPayload = {
+      runAt: new Date().toISOString(),
+      provider: runResult.provider,
+      model: runResult.model,
+      cases: runResult.cases,
+      summary: runResult.summary,
+    };
+
+    fs.writeFileSync(reportPath, JSON.stringify(reportPayload, null, 2), "utf-8");
+
+    console.log("\n=================================");
+    console.log("AI Radar LLM Eval Summary");
+    console.log("=================================");
+    console.log(`Provider:                     ${runResult.provider}`);
+    console.log(`Model:                        ${runResult.model}`);
+    console.log(`Number of cases:              ${runResult.summary.total}`);
+    console.log(`Parse pass count:             ${runResult.summary.parsePass}`);
+    console.log(`Schema pass count (Pre):      ${runResult.summary.schemaPassBeforeRepair}`);
+    console.log(`Schema pass count (Post):     ${runResult.summary.schemaPassAfterRepair}`);
+    console.log(`Repair count:                 ${runResult.summary.repairCount}`);
+    console.log(`Warning count:                ${runResult.summary.warningCount}`);
+    console.log(`Failed count:                 ${runResult.summary.failed}`);
+    console.log(`Average Latency:              ${runResult.summary.averageLatencyMs}ms`);
+    console.log(`Report path:                  ${reportPath}`);
+    console.log("=================================");
   }
-
-  const totalCases = cases.length;
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const outputDir = path.resolve(process.env.LLM_EVAL_OUTPUT_DIR || "reports");
-  
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-  
-  const reportFilename = `llm-eval-${timestamp}.json`;
-  const reportPath = path.join(outputDir, reportFilename);
-
-  const summary = {
-    total: totalCases,
-    parsePass: parsePassCount,
-    schemaPass: schemaPassCount,
-    warnings: warningCount,
-    failed: failedCount,
-  };
-
-  const reportPayload = {
-    runAt: new Date().toISOString(),
-    provider: provider.name,
-    model: provider.model,
-    cases: results,
-    summary,
-  };
-
-  fs.writeFileSync(reportPath, JSON.stringify(reportPayload, null, 2), "utf-8");
-
-  console.log("\n=================================");
-  console.log("AI Radar LLM Eval Summary");
-  console.log("=================================");
-  console.log(`Provider:           ${provider.name}`);
-  console.log(`Model:              ${provider.model}`);
-  console.log(`Number of cases:    ${totalCases}`);
-  console.log(`Parse pass count:   ${parsePassCount}`);
-  console.log(`Schema pass count:  ${schemaPassCount}`);
-  console.log(`Warning count:      ${warningCount}`);
-  console.log(`Failed count:       ${failedCount}`);
-  console.log(`Report path:        ${reportPath}`);
-  console.log("=================================");
 }
 
 runEvaluation();
